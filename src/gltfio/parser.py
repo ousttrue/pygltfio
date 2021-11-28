@@ -196,6 +196,8 @@ class GltfData:
         for gltf_prim in gltf_mesh['primitives']:
             gltf_attributes = gltf_prim['attributes']
             positions = None
+            position_min = (float('inf'), float('inf'), float('inf'))
+            position_max = (-float('inf'), -float('inf'), -float('inf'))
             normal = None
             uv0 = None
             uv1 = None
@@ -208,6 +210,13 @@ class GltfData:
                 match k:
                     case 'POSITION':
                         positions = self.buffer_reader.read_accessor(v)
+                        match self.gltf['accessors'][v]:
+                            case {
+                                'min': min_list,
+                                'max': max_list
+                            }:
+                                position_min = tuple(min_list)
+                                position_max = tuple(max_list)
                     case 'NORMAL':
                         normal = self.buffer_reader.read_accessor(v)
                     case 'TEXCOORD_0':
@@ -240,8 +249,8 @@ class GltfData:
                 case _:
                     # use default material
                     material = GltfMaterial.default()
-            prim = GltfPrimitive(material, positions, normal,
-                                 uv0, uv1, uv2,
+            prim = GltfPrimitive(material, positions, position_min, position_max,
+                                 normal, uv0, uv1, uv2,
                                  tangent, color,
                                  joints, weights,
                                  indices)

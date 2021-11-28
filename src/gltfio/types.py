@@ -13,6 +13,38 @@ class GltfError(RuntimeError):
     pass
 
 
+class Mat4(NamedTuple):
+    m11: float
+    m12: float
+    m13: float
+    m14: float
+    m21: float
+    m22: float
+    m23: float
+    m24: float
+    m31: float
+    m32: float
+    m33: float
+    m34: float
+    m41: float
+    m42: float
+    m43: float
+    m44: float
+
+
+class Vec3(NamedTuple):
+    x: float
+    y: float
+    z: float
+
+
+class Vec4(NamedTuple):
+    x: float
+    y: float
+    z: float
+    w: float
+
+
 CTYPES_FORMAT_MAP: Dict[Type[ctypes._SimpleCData], str] = {
     ctypes.c_byte: 'b',
     ctypes.c_ubyte: 'B',
@@ -134,6 +166,8 @@ class GltfMaterial(NamedTuple):
 class GltfPrimitive(NamedTuple):
     material: GltfMaterial
     position: TypedBytes
+    position_min: Vec3
+    position_max: Vec3
     normal: Optional[TypedBytes]
     uv0: Optional[TypedBytes]
     uv1: Optional[TypedBytes]
@@ -148,38 +182,6 @@ class GltfPrimitive(NamedTuple):
 class GltfMesh(NamedTuple):
     name: str
     primitives: Tuple[GltfPrimitive, ...]
-
-
-class Mat4(NamedTuple):
-    m11: float
-    m12: float
-    m13: float
-    m14: float
-    m21: float
-    m22: float
-    m23: float
-    m24: float
-    m31: float
-    m32: float
-    m33: float
-    m34: float
-    m41: float
-    m42: float
-    m43: float
-    m44: float
-
-
-class Vec3(NamedTuple):
-    x: float
-    y: float
-    z: float
-
-
-class Vec4(NamedTuple):
-    x: float
-    y: float
-    z: float
-    w: float
 
 
 @dataclass

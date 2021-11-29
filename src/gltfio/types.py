@@ -2,7 +2,7 @@
 https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/
 '''
 from ctypes.wintypes import RGB
-from typing import NamedTuple, Optional, Tuple, List, Dict, Type
+from typing import NamedTuple, Optional, Tuple, List, Type
 import ctypes
 from enum import Enum
 import pathlib
@@ -45,30 +45,24 @@ class Vec4(NamedTuple):
     w: float
 
 
-CTYPES_FORMAT_MAP: Dict[Type[ctypes._SimpleCData], str] = {
-    ctypes.c_byte: 'b',
-    ctypes.c_ubyte: 'B',
-    ctypes.c_short: 'h',
-    ctypes.c_ushort: 'H',
-    ctypes.c_uint: 'I',
-    ctypes.c_float: 'f',
-}
-
-
-class TypedBytes(NamedTuple):
-    data: bytes
-    element_type: Type[ctypes._SimpleCData]
+class VectorView(NamedTuple):
+    # float3 の場合 memoryview.format == 'f'
+    # ushort1 の場合 memoryview.format == 'H'
+    scalar_array: memoryview
+    # float3 の場合 3
+    # ushort1 の場合 1
     element_count: int = 1
 
     def get_stride(self) -> int:
-        return ctypes.sizeof(self.element_type) * self.element_count
+        return self.scalar_array.itemsize * self.element_count
 
     def get_count(self) -> int:
-        return len(self.data) // self.get_stride()
+        # return self.scalar_array.nbytes // self.get_stride()
+        return len(self.scalar_array) // self.element_count
 
-    def get_item(self, i: int):
+    def get_item(self, i: int) -> memoryview:
         begin = i * self.element_count
-        return memoryview(self.data).cast(CTYPES_FORMAT_MAP[self.element_type])[begin:begin+self.element_count]
+        return self.scalar_array[begin:begin+self.element_count]
 
 
 COMPONENT_TYPE_TO_ELEMENT_TYPE = {
@@ -165,18 +159,18 @@ class GltfMaterial(NamedTuple):
 
 class GltfPrimitive(NamedTuple):
     material: GltfMaterial
-    position: TypedBytes
+    position: VectorView
     position_min: Vec3
     position_max: Vec3
-    normal: Optional[TypedBytes]
-    uv0: Optional[TypedBytes]
-    uv1: Optional[TypedBytes]
-    uv2: Optional[TypedBytes]
-    tangent: Optional[TypedBytes]
-    color: Optional[TypedBytes]
-    joints: Optional[TypedBytes]
-    weights: Optional[TypedBytes]
-    indices: Optional[TypedBytes]
+    normal: Optional[VectorView]
+    uv0: Optional[VectorView]
+    uv1: Optional[VectorView]
+    uv2: Optional[VectorView]
+    tangent: Optional[VectorView]
+    color: Optional[VectorView]
+    joints: Optional[VectorView]
+    weights: Optional[VectorView]
+    indices: Optional[VectorView]
 
 
 class GltfMesh(NamedTuple):

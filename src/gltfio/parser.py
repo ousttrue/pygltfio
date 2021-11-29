@@ -52,20 +52,21 @@ class GltfBufferReader:
         length = gltf_buffer_view['byteLength']
         return bin[offset:offset+length]
 
-    def read_accessor(self, accessor_index: int) -> TypedBytes:
+    def read_accessor(self, accessor_index: int) -> VectorView:
         gltf_accessor = self.gltf['accessors'][accessor_index]
         offset = gltf_accessor.get('byteOffset', 0)
         count = gltf_accessor['count']
         element_type, element_count = get_accessor_type(gltf_accessor)
+        scalar_format = element_type._type_  # type: ignore
         length = ctypes.sizeof(element_type) * element_count*count
         match gltf_accessor:
             case {'bufferView': buffer_view_index}:
                 bin = self.buffer_view_bytes(buffer_view_index)
                 bin = bin[offset:offset+length]
-                return TypedBytes(bin, element_type, element_count)
+                return VectorView(memoryview(bin).cast(scalar_format), element_count)
             case _:
-                # zefo filled
-                return TypedBytes(b'\0' * length, element_type, element_count)
+                # zero filled
+                return VectorView(memoryview(b'\0' * length).cast(scalar_format), element_count)
 
 
 class GltfData:
@@ -196,8 +197,8 @@ class GltfData:
         for gltf_prim in gltf_mesh['primitives']:
             gltf_attributes = gltf_prim['attributes']
             positions = None
-            position_min = (float('inf'), float('inf'), float('inf'))
-            position_max = (-float('inf'), -float('inf'), -float('inf'))
+            position_min = Vec3(float('inf'), float('inf'), float('inf'))
+            position_max = Vec3(-float('inf'), -float('inf'), -float('inf'))
             normal = None
             uv0 = None
             uv1 = None
@@ -215,8 +216,8 @@ class GltfData:
                                 'min': min_list,
                                 'max': max_list
                             }:
-                                position_min = tuple(min_list)
-                                position_max = tuple(max_list)
+                                position_min = Vec3(*min_list)
+                                position_max = Vec3(*max_list)
                     case 'NORMAL':
                         normal = self.buffer_reader.read_accessor(v)
                     case 'TEXCOORD_0':

@@ -330,15 +330,13 @@ class GltfData:
 
     def _parse_animation_sampler(self, gltf_animation_sampler) -> GltfAnimationSampler:
         match gltf_animation_sampler:
-            case {'input': input, 'interpolation': interpolation, 'output': output}:
+            case {'input': input, 'output': output}:
+                interpolation = gltf_animation_sampler.get(
+                    'interpolation', 'LINEAR')
                 return GltfAnimationSampler(
                     self.buffer_reader.read_accessor(input),
                     self.buffer_reader.read_accessor(output),
                     GltfAnimationInterpolation(interpolation))
-            case {'input': input, 'output': output}:
-                return GltfAnimationSampler(
-                    self.buffer_reader.read_accessor(input),
-                    self.buffer_reader.read_accessor(output))
             case _:
                 raise GltfError()
 

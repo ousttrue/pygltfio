@@ -108,14 +108,20 @@ class MimeType(Enum):
 
 
 class GltfImage(NamedTuple):
+    index: int
     name: str
     data: bytes
     mime: MimeType
+    extensions: Optional[dict]
+    extras: Optional[dict]
 
 
 class GltfTexture(NamedTuple):
+    index: int
     name: str
     image: GltfImage
+    extensions: Optional[dict]
+    extras: Optional[dict]
 
 
 class RGB(NamedTuple):
@@ -138,6 +144,7 @@ class AlphaMode(Enum):
 
 
 class GltfMaterial(NamedTuple):
+    index: int
     name: str
     base_color_texture: Optional[GltfTexture]
     base_color_factor: RGBA
@@ -151,10 +158,12 @@ class GltfMaterial(NamedTuple):
     alpha_mode: AlphaMode
     alpha_cutoff: float
     double_sided: bool
+    extensions: Optional[dict]
+    extras: Optional[dict]
 
     @staticmethod
     def default() -> 'GltfMaterial':
-        return GltfMaterial('__default__', None, RGBA(1, 1, 1, 1), None, 0, 1, None, RGB(0, 0, 0), None, None, AlphaMode.OPAQUE, 0.5, False)
+        return GltfMaterial(-1, '__default__', None, RGBA(1, 1, 1, 1), None, 0, 1, None, RGB(0, 0, 0), None, None, AlphaMode.OPAQUE, 0.5, False, None, None)
 
 
 class GltfPrimitive(NamedTuple):
@@ -174,12 +183,16 @@ class GltfPrimitive(NamedTuple):
 
 
 class GltfMesh(NamedTuple):
+    index: int
     name: str
     primitives: Tuple[GltfPrimitive, ...]
+    extensions: Optional[dict]
+    extras: Optional[dict]
 
 
 @dataclass
 class GltfNode:
+    index: int
     name: str
     children: List['GltfNode']
     mesh: Optional[GltfMesh] = None
@@ -187,3 +200,5 @@ class GltfNode:
     translation: Optional[Vec3] = Vec3(0, 0, 0)
     rotation: Optional[Vec4] = Vec4(0, 0, 0, 1)
     scale: Optional[Vec3] = Vec3(1, 1, 1)
+    extensions: Optional[dict] = None
+    extras: Optional[dict] = None

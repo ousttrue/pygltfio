@@ -87,31 +87,35 @@ class GltfData:
 
     def _parse_image(self, i: int, gltf_image) -> GltfImage:
         name = gltf_image.get('name')
+        extensions = gltf_image.get('extensions')
+        extras = gltf_image.get('extras')
         match gltf_image:
             case {'bufferView': buffer_view_index, 'mimeType': mime}:
-                return GltfImage(name or f'{i}', self.buffer_reader.buffer_view_bytes(buffer_view_index), MimeType(mime))
+                return GltfImage(i, name or f'{i}', self.buffer_reader.buffer_view_bytes(buffer_view_index), MimeType(mime), extensions, extras)
             case {'uri': uri}:
                 if uri.startswith('data:'):
                     m = DATA_URI.match(uri)
                     if not m:
                         raise RuntimeError()
-                    return GltfImage(uri, self.buffer_reader.uri_bytes(uri), MimeType(m[1]))
+                    return GltfImage(i, uri, self.buffer_reader.uri_bytes(uri), MimeType(m[1]), extensions, extras)
                 else:
-                    return GltfImage(uri, self.buffer_reader.uri_bytes(uri), MimeType.from_name(uri))
+                    return GltfImage(i, uri, self.buffer_reader.uri_bytes(uri), MimeType.from_name(uri), extensions, extras)
             case _:
                 raise GltfError()
 
     def _parse_texture(self, i: int, gltf_texture) -> GltfTexture:
+        extensions = gltf_texture.get('extensions')
+        extras = gltf_texture.get('extras')
         match gltf_texture:
             case {'source': image_index}:
-                texture = GltfTexture(gltf_texture.get(
-                    'name', f'{i}'), self.images[image_index])
+                texture = GltfTexture(i, gltf_texture.get(
+                    'name', f'{i}'), self.images[image_index], extensions, extras)
                 return texture
             case {'extensions': {
                 'KHR_texture_basisu': {'source': image_index}
             }}:
-                texture = GltfTexture(gltf_texture.get(
-                    'name', f'{i}'), self.images[image_index])
+                texture = GltfTexture(i, gltf_texture.get(
+                    'name', f'{i}'), self.images[image_index], extensions, extras)
                 return texture
             case _:
                 raise Exception()
@@ -130,6 +134,8 @@ class GltfData:
         alpha_mode = AlphaMode.OPAQUE
         alpha_cutoff = 0.5
         double_sided = False
+        extensions = None
+        extras = None
         for k, v in gltf_material.items():
             match k:
                 case 'name':
@@ -182,14 +188,15 @@ class GltfData:
                             raise GltfError()
 
                 case 'extensions':
-                    # TODO:
-                    pass
+                    extensions = v
+                case 'extras':
+                    extras = v
 
                 case _:
                     raise NotImplementedError()
-        material = GltfMaterial(name, base_color_texture,
+        material = GltfMaterial(i, name, base_color_texture,
                                 base_color_factor, metallic_roughness_texture, metallic_factor, roughness_factor,
-                                emissive_texture, emissive_factor, normal_texture, occlusion_texture, alpha_mode, alpha_cutoff, double_sided)
+                                emissive_texture, emissive_factor, normal_texture, occlusion_texture, alpha_mode, alpha_cutoff, double_sided, extensions, extras)
         return material
 
     def _parse_mesh(self, i: int, gltf_mesh) -> GltfMesh:
@@ -257,11 +264,12 @@ class GltfData:
                                  indices)
             primitives.append(prim)
 
-        mesh = GltfMesh(gltf_mesh.get('name', f'{i}'), tuple(primitives))
+        mesh = GltfMesh(i, gltf_mesh.get('name', f'{i}'), tuple(
+            primitives), gltf_mesh.get('extensions'), gltf_mesh.get('extras'))
         return mesh
 
     def _parse_node(self, i: int, gltf_node) -> GltfNode:
-        node = GltfNode(f'{i}', [])
+        node = GltfNode(i, f'{i}', [])
         for k, v in gltf_node.items():
             match k:
                 case 'name':
@@ -285,11 +293,9 @@ class GltfData:
                     # TODO:
                     pass
                 case 'extensions':
-                    # TODO:
-                    pass
+                    node.extensions = v
                 case 'extras':
-                    # TODO
-                    pass
+                    node.extras = v
                 case _:
                     raise NotImplementedError()
         return node

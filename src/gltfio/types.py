@@ -202,3 +202,14 @@ class GltfNode:
     scale: Optional[Vec3] = Vec3(1, 1, 1)
     extensions: Optional[dict] = None
     extras: Optional[dict] = None
+    skin: Optional['GltfSkin'] = None
+
+
+class GltfSkin(NamedTuple):
+    index: int
+    name: str
+    inverse_bind_matrices: Optional[GltfAccessorSlice]
+    skeleton: Optional[GltfNode]
+    joints: List[GltfNode]
+    extensions: Optional[dict] = None
+    extras: Optional[dict] = None

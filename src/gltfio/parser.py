@@ -74,13 +74,14 @@ class GltfData:
         self.gltf = gltf
         self.path = path
         self.bin = bin
+        self.buffer_reader = GltfBufferReader(gltf, path, bin)
         self.images: List[GltfImage] = []
         self.textures: List[GltfTexture] = []
         self.materials: List[GltfMaterial] = []
         self.meshes: List[GltfMesh] = []
+        self.skins: List[GltfSkin] = []
         self.nodes: List[GltfNode] = []
         self.scene: List[GltfNode] = []
-        self.buffer_reader = GltfBufferReader(gltf, path, bin)
 
     def __str__(self) -> str:
         return f'{len(self.materials)} materials, {len(self.meshes)} meshes, {len(self.nodes)} nodes'
@@ -300,6 +301,20 @@ class GltfData:
                     raise NotImplementedError()
         return node
 
+    def _parse_skin(self, i: int, gltf_skin) -> GltfSkin:
+        matrices = None
+        match gltf_skin:
+            case {'inverseBindMatrices': accessor}:
+                matrices = self.buffer_reader.read_accessor(accessor)
+        skeleton = None
+        match gltf_skin:
+            case {'skeleton': skeleton_index}:
+                skeleton = self.nodes[skeleton_index]
+
+        skin = GltfSkin(i, f'{i}', matrices, skeleton, [
+                        self.nodes[joint] for joint in gltf_skin['joints']], gltf_skin.get('extensions'), gltf_skin.get('extras'))
+        return skin
+
     def parse(self):
         # image
         for i, gltf_image in enumerate(self.gltf.get('images', [])):
@@ -329,15 +344,21 @@ class GltfData:
         for i, gltf_node in enumerate(self.gltf.get('nodes', [])):
             node = self._parse_node(i, gltf_node)
             self.nodes.append(node)
+
+        # skinning
+        for i, gltf_skin in enumerate(self.gltf.get('skins', [])):
+            skin = self._parse_skin(i, gltf_skin)
+            self.skins.append(skin)
+
+        # node 2 pass
         for i, gltf_node in enumerate(self.gltf.get('nodes', [])):
             match gltf_node.get('children'):
                 case [*children]:
                     for child_index in children:
                         self.nodes[i].children.append(self.nodes[child_index])
-
-        # skinning
-        for i, gltf_skin in enumerate(self.gltf.get('skins', [])):
-            pass
+            match gltf_node:
+                case {'skin': skin_index}:
+                    self.nodes[i].skin = self.skins[skin_index]
 
         # scene
         self.scene += [self.nodes[node_index]

@@ -1,7 +1,7 @@
 import unittest
 import ctypes
 import array
-from gltfio.types import VectorView
+from gltfio.types import GltfAccessorSlice
 
 
 class TestBuffer(unittest.TestCase):
@@ -35,6 +35,6 @@ class TestBuffer(unittest.TestCase):
 
     def test_typedbytes(self):
         value = array.array('f', (1, 2, 3, 4, 5, 6, 7, 8, 9))
-        tb = VectorView(memoryview(value), 3)
+        tb = GltfAccessorSlice(memoryview(value), 3)
         value_slice = tb.get_item(1)
         self.assertEqual(array.array('f', (4, 5, 6)), value_slice)

@@ -52,7 +52,7 @@ class GltfBufferReader:
         length = gltf_buffer_view['byteLength']
         return bin[offset:offset+length]
 
-    def read_accessor(self, accessor_index: int) -> VectorView:
+    def read_accessor(self, accessor_index: int) -> GltfAccessorSlice:
         gltf_accessor = self.gltf['accessors'][accessor_index]
         offset = gltf_accessor.get('byteOffset', 0)
         count = gltf_accessor['count']
@@ -63,10 +63,10 @@ class GltfBufferReader:
             case {'bufferView': buffer_view_index}:
                 bin = self.buffer_view_bytes(buffer_view_index)
                 bin = bin[offset:offset+length]
-                return VectorView(memoryview(bin).cast(scalar_format), element_count)
+                return GltfAccessorSlice(memoryview(bin).cast(scalar_format), element_count)
             case _:
                 # zero filled
-                return VectorView(memoryview(b'\0' * length).cast(scalar_format), element_count)
+                return GltfAccessorSlice(memoryview(b'\0' * length).cast(scalar_format), element_count)
 
 
 class GltfData:

@@ -45,24 +45,24 @@ class Vec4(NamedTuple):
     w: float
 
 
-class VectorView(NamedTuple):
+class GltfAccessorSlice(NamedTuple):
     # float3 の場合 memoryview.format == 'f'
     # ushort1 の場合 memoryview.format == 'H'
-    scalar_array: memoryview
+    scalar_view: memoryview
     # float3 の場合 3
     # ushort1 の場合 1
     element_count: int = 1
 
     def get_stride(self) -> int:
-        return self.scalar_array.itemsize * self.element_count
+        return self.scalar_view.itemsize * self.element_count
 
     def get_count(self) -> int:
         # return self.scalar_array.nbytes // self.get_stride()
-        return len(self.scalar_array) // self.element_count
+        return len(self.scalar_view) // self.element_count
 
     def get_item(self, i: int) -> memoryview:
         begin = i * self.element_count
-        return self.scalar_array[begin:begin+self.element_count]
+        return self.scalar_view[begin:begin+self.element_count]
 
 
 COMPONENT_TYPE_TO_ELEMENT_TYPE = {
@@ -159,18 +159,18 @@ class GltfMaterial(NamedTuple):
 
 class GltfPrimitive(NamedTuple):
     material: GltfMaterial
-    position: VectorView
+    position: GltfAccessorSlice
     position_min: Vec3
     position_max: Vec3
-    normal: Optional[VectorView]
-    uv0: Optional[VectorView]
-    uv1: Optional[VectorView]
-    uv2: Optional[VectorView]
-    tangent: Optional[VectorView]
-    color: Optional[VectorView]
-    joints: Optional[VectorView]
-    weights: Optional[VectorView]
-    indices: Optional[VectorView]
+    normal: Optional[GltfAccessorSlice]
+    uv0: Optional[GltfAccessorSlice]
+    uv1: Optional[GltfAccessorSlice]
+    uv2: Optional[GltfAccessorSlice]
+    tangent: Optional[GltfAccessorSlice]
+    color: Optional[GltfAccessorSlice]
+    joints: Optional[GltfAccessorSlice]
+    weights: Optional[GltfAccessorSlice]
+    indices: Optional[GltfAccessorSlice]
 
 
 class GltfMesh(NamedTuple):

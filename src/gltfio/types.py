@@ -213,3 +213,44 @@ class GltfSkin(NamedTuple):
     joints: List[GltfNode]
     extensions: Optional[dict] = None
     extras: Optional[dict] = None
+
+
+class GltfAnimationInterpolation(Enum):
+    Linear = 'LINEAR'
+    Step = 'STEP'
+    Cubicspline = 'CUBICSPLINE'
+
+
+class GltfAnimationSampler(NamedTuple):
+    # time
+    input: GltfAccessorSlice
+    # values
+    output: GltfAccessorSlice
+    #
+    interpolation: GltfAnimationInterpolation = GltfAnimationInterpolation.Linear
+
+
+class GltfAnimationTargetPath(Enum):
+    Translation = 'translation'
+    Rotation = 'rotation'
+    Scale = 'scale'
+    Weights = 'weights'
+
+
+class GltfAnimationTarget(NamedTuple):
+    path: GltfAnimationTargetPath
+    node_index: GltfNode
+
+
+class GltfAnimationChannel(NamedTuple):
+    sampler: int
+    target: GltfAnimationTarget
+
+
+class GltfAnimation(NamedTuple):
+    index: int
+    name: str
+    channels: List[GltfAnimationChannel]
+    samplers: List[GltfAnimationSampler]
+    extensions: Optional[dict] = None
+    extras: Optional[dict] = None

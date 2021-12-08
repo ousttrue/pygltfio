@@ -2,7 +2,7 @@
 https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/
 '''
 from ctypes.wintypes import RGB
-from typing import NamedTuple, Optional, Tuple, List, Type
+from typing import NamedTuple, Optional, Tuple, List, Type, Iterator
 import ctypes
 from enum import Enum
 import pathlib
@@ -52,6 +52,12 @@ class GltfAccessorSlice(NamedTuple):
     # float3 の場合 3
     # ushort1 の場合 1
     element_count: int = 1
+
+    def __iter__(self) -> Iterator[memoryview]:
+        begin = 0
+        for i in range(self.get_count()):
+            yield self.scalar_view[begin:begin+self.element_count]
+            begin += self.element_count
 
     def get_stride(self) -> int:
         return self.scalar_view.itemsize * self.element_count

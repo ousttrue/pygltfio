@@ -74,13 +74,15 @@ class GltfData:
         self.gltf = gltf
         self.path = path
         self.bin = bin
+        self.buffer_reader = GltfBufferReader(gltf, path, bin)
         self.images: List[GltfImage] = []
         self.textures: List[GltfTexture] = []
         self.materials: List[GltfMaterial] = []
         self.meshes: List[GltfMesh] = []
+        self.skins: List[GltfSkin] = []
         self.nodes: List[GltfNode] = []
         self.scene: List[GltfNode] = []
-        self.buffer_reader = GltfBufferReader(gltf, path, bin)
+        self.animations: List[GltfAnimation] = []
 
     def __str__(self) -> str:
         return f'{len(self.materials)} materials, {len(self.meshes)} meshes, {len(self.nodes)} nodes'
@@ -300,6 +302,53 @@ class GltfData:
                     raise NotImplementedError()
         return node
 
+    def _parse_skin(self, i: int, gltf_skin) -> GltfSkin:
+        matrices = None
+        match gltf_skin:
+            case {'inverseBindMatrices': accessor}:
+                matrices = self.buffer_reader.read_accessor(accessor)
+        skeleton = None
+        match gltf_skin:
+            case {'skeleton': skeleton_index}:
+                skeleton = self.nodes[skeleton_index]
+
+        skin = GltfSkin(i, gltf_skin.get('name', f'{i}'),
+                        matrices, skeleton,
+                        [self.nodes[joint] for joint in gltf_skin['joints']],
+                        gltf_skin.get('extensions'),
+                        gltf_skin.get('extras'))
+        return skin
+
+    def _parse_animation_channel(self, gltf_animation_channel) -> GltfAnimationChannel:
+        match gltf_animation_channel:
+            case {'sampler': sampler, 'target': {'node': target_node, 'path': target_path}}:
+                target = GltfAnimationTarget(GltfAnimationTargetPath(
+                    target_path), self.nodes[target_node])
+                return GltfAnimationChannel(sampler, target)
+            case _:
+                raise GltfError()
+
+    def _parse_animation_sampler(self, gltf_animation_sampler) -> GltfAnimationSampler:
+        match gltf_animation_sampler:
+            case {'input': input, 'output': output}:
+                interpolation = gltf_animation_sampler.get(
+                    'interpolation', 'LINEAR')
+                return GltfAnimationSampler(
+                    self.buffer_reader.read_accessor(input),
+                    self.buffer_reader.read_accessor(output),
+                    GltfAnimationInterpolation(interpolation))
+            case _:
+                raise GltfError()
+
+    def _parse_animation(self, i: int, gltf_animation) -> GltfAnimation:
+        channels = [self._parse_animation_channel(
+            ch) for ch in gltf_animation['channels']]
+        samplers = [self._parse_animation_sampler(
+            s) for s in gltf_animation['samplers']]
+        animation = GltfAnimation(i, gltf_animation.get(
+            'name', f'{i}'), channels, samplers)
+        return animation
+
     def parse(self):
         # image
         for i, gltf_image in enumerate(self.gltf.get('images', [])):
@@ -329,19 +378,30 @@ class GltfData:
         for i, gltf_node in enumerate(self.gltf.get('nodes', [])):
             node = self._parse_node(i, gltf_node)
             self.nodes.append(node)
+
+        # skinning
+        for i, gltf_skin in enumerate(self.gltf.get('skins', [])):
+            skin = self._parse_skin(i, gltf_skin)
+            self.skins.append(skin)
+
+        # node 2 pass
         for i, gltf_node in enumerate(self.gltf.get('nodes', [])):
             match gltf_node.get('children'):
                 case [*children]:
                     for child_index in children:
                         self.nodes[i].children.append(self.nodes[child_index])
-
-        # skinning
-        for i, gltf_skin in enumerate(self.gltf.get('skins', [])):
-            pass
+            match gltf_node:
+                case {'skin': skin_index}:
+                    self.nodes[i].skin = self.skins[skin_index]
 
         # scene
         self.scene += [self.nodes[node_index]
                        for node_index in self.gltf['scenes'][self.gltf.get('scene', 0)]['nodes']]
+
+        # animation
+        for i, gltf_animation in enumerate(self.gltf.get('animations', [])):
+            animation = self._parse_animation(i, gltf_animation)
+            self.animations.append(animation)
 
 
 def parse_gltf(json_chunk: bytes, *, path: Optional[pathlib.Path] = None, bin: Optional[bytes] = None) -> GltfData:

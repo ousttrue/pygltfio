@@ -202,3 +202,55 @@ class GltfNode:
     scale: Optional[Vec3] = Vec3(1, 1, 1)
     extensions: Optional[dict] = None
     extras: Optional[dict] = None
+    skin: Optional['GltfSkin'] = None
+
+
+class GltfSkin(NamedTuple):
+    index: int
+    name: str
+    inverse_bind_matrices: Optional[GltfAccessorSlice]
+    skeleton: Optional[GltfNode]
+    joints: List[GltfNode]
+    extensions: Optional[dict] = None
+    extras: Optional[dict] = None
+
+
+class GltfAnimationInterpolation(Enum):
+    Linear = 'LINEAR'
+    Step = 'STEP'
+    Cubicspline = 'CUBICSPLINE'
+
+
+class GltfAnimationSampler(NamedTuple):
+    # time
+    input: GltfAccessorSlice
+    # values
+    output: GltfAccessorSlice
+    #
+    interpolation: GltfAnimationInterpolation = GltfAnimationInterpolation.Linear
+
+
+class GltfAnimationTargetPath(Enum):
+    Translation = 'translation'
+    Rotation = 'rotation'
+    Scale = 'scale'
+    Weights = 'weights'
+
+
+class GltfAnimationTarget(NamedTuple):
+    path: GltfAnimationTargetPath
+    node_index: GltfNode
+
+
+class GltfAnimationChannel(NamedTuple):
+    sampler: int
+    target: GltfAnimationTarget
+
+
+class GltfAnimation(NamedTuple):
+    index: int
+    name: str
+    channels: List[GltfAnimationChannel]
+    samplers: List[GltfAnimationSampler]
+    extensions: Optional[dict] = None
+    extras: Optional[dict] = None
